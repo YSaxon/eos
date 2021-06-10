@@ -14,6 +14,17 @@
 
 More info at https://www.synacktiv.com/posts/pentest/looting-symfony-with-eos.html.
 
+Note that this tool does not exploit any Symfony vulnerability. The profiler is
+a useful component for developers and `EOS` simply takes advantage on
+misconfigured Symfony applications. In fact, the profiler [documentation][1]
+prominently warns developers:
+
+> Never enable the profiler in production environments as it will lead to major security vulnerabilities in your project.
+
+Thanks to all the Symfony team for their awesome work!
+
+[1]: https://symfony.com/doc/current/profiler.html
+
 ## Installation
 
 ```bash
@@ -31,7 +42,7 @@ usage: eos [-h] [-V] [-v] [--no-colors] {scan,sources,get,creds,cookies} ...
   █████╗  ██║   ██║███████╗
   ██╔══╝  ██║   ██║╚════██║
   ███████╗╚██████╔╝███████║  Enemies Of Symfony
-  ╚══════╝ ╚═════╝ ╚══════╝  v1.0.0
+  ╚══════╝ ╚═════╝ ╚══════╝  v1.1
 
 positional arguments:
   {scan,sources,get,creds,cookies}
@@ -49,7 +60,6 @@ optional arguments:
 
 examples:
   eos scan http://localhost
-  eos scan -v -t 4 http://localhost
   eos scan --headers 'Cookie: foo=bar; john=doe' 'User-Agent: EOS' -- http://localhost
   eos get http://localhost config/services.yaml
   eos cookies -u jane_admin -H '$2y$13$IMalnQpo7xfZD5FJGbEadOcqyj2mi/NQbQiI8v2wBXfjZ4nwshJlG' -s 67d829bf61dc5f87a73fd814e2c9f629
@@ -59,9 +69,6 @@ examples:
 $ eos scan http://localhost --output results
 [+] Starting scan on http://localhost
 [+] 2020-04-23 14:21:26.463352 is a great day
-
-[+] Checks
-[!] Target found in debug mode
 
 [+] Info
 [!]   Symfony 5.0.1

@@ -8,6 +8,8 @@ from pathlib import Path
 from base64 import b64decode
 
 from requests import Session
+from requests.packages.urllib3 import disable_warnings
+from urllib3.exceptions import InsecureRequestWarning
 
 from eos import EOS, __version__
 from eos.core import Symfony, Engine, RememberMe
@@ -18,7 +20,6 @@ from eos.plugins.sources import Plugin as Sources
 
 scan_examples = [
     'eos scan http://localhost',
-    'eos scan -v -t 4 http://localhost',
     "eos scan --headers 'Cookie: foo=bar; john=doe' 'User-Agent: EOS' -- http://localhost",
 ]
 
@@ -43,7 +44,7 @@ class CLI:
     def scan(cls, args):
         """Scan handler."""
         eos = EOS(url=args.url, output=args.output, session=args.session)
-        eos.run(check_only=args.check_only, threads=args.threads)
+        eos.run(threads=args.threads)
 
     @classmethod
     def sources(cls, args):
@@ -122,7 +123,8 @@ def main():
     sub = p.add_subparsers(dest='command', required=True)
     common = ArgumentParser(add_help=False)
     common.add_argument('url', help='target URL')
-    common.add_argument('-H', '--headers', metavar='Header: value', nargs='+', type=combo, default={},
+    common.add_argument('-k', '--insecure', action='store_false', help='no SSL certificate verification')
+    common.add_argument('-H', '--headers', metavar='Header: value', action='append', type=combo, default=[],
                         help='custom HTTP headers')
     common.set_defaults(output=None, timestamps=None)
 
@@ -137,7 +139,6 @@ def main():
     scan = sub.add_parser('scan', component='Scanner', help='perform a full scan', examples=scan_examples,
                           parents=[common, output, threads])
     scan.add_argument('--timestamps', action='store_true', help='log with timestamps')
-    scan.add_argument('--check-only', action='store_true', help='only check if target is vulnerable')
     scan.set_defaults(handler=CLI.scan)
 
     # Sources
@@ -168,7 +169,7 @@ def main():
     cookies.add_argument('-s', '--secret', metavar='secret', required=True, help="the application's remember_me secret")
     cookies.add_argument('-d', '--delimiter', metavar='char', default=RememberMe.delimiter,
                          help='the cookie delimiter (default: "{}")'.format(RememberMe.delimiter))
-    cookies.set_defaults(handler=CLI.cookies, output=None, timestamps=None, headers=[])
+    cookies.set_defaults(handler=CLI.cookies, output=None, timestamps=None, headers=[], insecure=None)
 
     # Parse
     args = p.parse_args()
@@ -182,9 +183,12 @@ def main():
             sys.exit(1)
 
     # Requests session
-    args.session = Session()
-    args.session.headers = {'User-Agent': 'Mozilla/5.0'}
-    args.session.headers.update(dict(args.headers))
+    disable_warnings(category=InsecureRequestWarning)
+    session = Session()
+    session.headers = {'User-Agent': 'Mozilla/5.0'}
+    session.headers.update(dict(args.headers))
+    session.verify = args.insecure
+    args.session = session
 
     # Run
     try:
